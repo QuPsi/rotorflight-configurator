@@ -479,6 +479,48 @@ tab.initialize = function (callback) {
             funcElement.change(function () {
                 const funcValue = funcElement.val();
                 serialPort.functionMask = funcValue;
+
+                if (parseInt(funcValue) === 1048576) { // SRXL2_ESC
+                    // Auto-configure features and protocols for SRXL2 ESC
+                    
+                    const throttleProtocols = ["PWM","ONESHOT125","ONESHOT42","MULTISHOT","BRUSHED","DSHOT150","DSHOT300","DSHOT600","PROSHOT"];
+                    if (semver.gte(FC.CONFIG.apiVersion, "12.8.0")) throttleProtocols.push("CASTLE");
+                    if (semver.gte(FC.CONFIG.apiVersion, "12.9.0")) throttleProtocols.push("SRXL2");
+                    
+                    const telemetryProtocols = ["Disabled", "BLHeli32", "Hobbywing Platinum V4 / FlyFun V5", "Hobbywing Platinum V5", "Scorpion", "Kontronik", "OMPHobby", "ZTW", "APD", "OpenYGE", "FLYROTOR", "Graupner"];
+                    if (semver.gte(FC.CONFIG.apiVersion, "12.8.0")) telemetryProtocols.push("XDFLY");
+                    if (semver.gte(FC.CONFIG.apiVersion, "12.9.0")) telemetryProtocols.push("SRXL2");
+    
+                    const srxl2ThrottleIndex = throttleProtocols.indexOf("SRXL2");
+                    const srxl2TelemIndex = telemetryProtocols.indexOf("SRXL2");
+    
+                    if (srxl2ThrottleIndex !== -1) {
+                         FC.MOTOR_CONFIG.motor_pwm_protocol = srxl2ThrottleIndex;
+                    }
+                    if (srxl2TelemIndex !== -1) {
+                        FC.ESC_SENSOR_CONFIG.protocol = srxl2TelemIndex;
+                    }
+                    
+                    FC.ESC_SENSOR_CONFIG.half_duplex = true;
+    
+                    if (FC.FEATURE_CONFIG.features.setFeature) {
+                        FC.FEATURE_CONFIG.features.setFeature('SRXL2_ESC', true);
+                        FC.FEATURE_CONFIG.features.setFeature('ESC_SENSOR', true);
+                    } else {
+                        // Fallback if setFeature is not available directly (should be via property setters)
+                         FC.FEATURE_CONFIG.features.SRXL2_ESC = true;
+                         FC.FEATURE_CONFIG.features.ESC_SENSOR = true;
+                    }
+    
+                    // Update UI if features are visible
+                    $('#feature-SRXL2_ESC').prop('checked', true);
+                    $('#feature-ESC_SENSOR').prop('checked', true);
+                    
+                    if (GUI.log) {
+                        GUI.log(i18n.getMessage('portsFunction_SRXL2_ESC') + " selected: features and protocols updated.");
+                    }
+                }
+
                 update_baudrate_list(baudElement, portIndex, get_port_type(funcValue));
                 update_function_lists();
             });
